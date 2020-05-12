@@ -1,4 +1,4 @@
-package server;
+package gateway.resources;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -6,10 +6,10 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
 /**
- * Root resource (exposed at "myresource" path)
+ * Resource handler for analystis to get data
  */
-@Path("myresource")
-public class HelloWorldResource {
+@Path("node")
+public class StatsResources {
 
     /**
      * Method handling HTTP GET requests. The returned object will be sent to the
