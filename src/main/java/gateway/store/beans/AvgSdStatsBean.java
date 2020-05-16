@@ -1,5 +1,9 @@
 package gateway.store.beans;
 
+import javax.swing.plaf.basic.BasicInternalFrameTitlePane.SystemMenuBar;
+import javax.xml.bind.annotation.XmlRootElement;
+
+@XmlRootElement
 public class AvgSdStatsBean {
     private double average;
     private double standard_deviation;
@@ -21,6 +25,10 @@ public class AvgSdStatsBean {
 
     public void setStandard_deviation(double standard_deviation) {
         this.standard_deviation = standard_deviation;
+    }
+
+    public String toString() {
+        return "Average: " + average + "\nStandard Deviation: " + standard_deviation;
     }
 
 }
