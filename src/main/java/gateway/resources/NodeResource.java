@@ -5,6 +5,10 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
+import gateway.store.Store;
+import gateway.store.beans.NodeBean;
+import gateway.store.beans.NodeBeanList;
+
 /**
  * Resource handler for single nodes talking to the gateway
  */
@@ -16,10 +20,12 @@ public class NodeResource {
      * client as "text/plain" media type.
      *
      * @return String that will be returned as a text/plain response.
+     * @throws InterruptedException
      */
     @GET
-    @Produces(MediaType.TEXT_PLAIN)
-    public String getIt() {
-        return "Got it!";
+    @Produces({"application/json"})
+    public NodeBeanList getOne() throws InterruptedException {
+        Store s = new Store();
+        return s.getNodes();
     }
 }
