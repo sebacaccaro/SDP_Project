@@ -45,6 +45,13 @@ public class ConcurrentMap<KeyType, ValueType extends CloneInterface<ValueType>>
         return mapAsList;
     }
 
+    public int size() throws InterruptedException {
+        lockRead();
+        int count = baseMap.size();
+        unlockRead();
+        return count;
+    }
+
 
 
 }

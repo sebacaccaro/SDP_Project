@@ -28,6 +28,12 @@ public class Store {
         return nodesList;
     }
 
+    public NumberOfNodesBean getNodeCount() throws InterruptedException {
+        NumberOfNodesBean n = new NumberOfNodesBean();
+        n.setNumberOfNodes(nodes.size());
+        return n;
+    }
+
     public void addStat(StatUnitBean sb) throws InterruptedException {
         stats.add(sb);
     }

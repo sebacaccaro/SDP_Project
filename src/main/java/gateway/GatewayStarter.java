@@ -24,7 +24,7 @@ public class GatewayStarter {
 
         Set<Class<?>> resources = new HashSet<Class<?>>();
         resources.add(NodeResource.class);
-        resources.add(SensorNetResource.class);
+        resources.add(AnalystResource.class);
 
         ResourceConfig config = new ResourceConfig(resources);
 
