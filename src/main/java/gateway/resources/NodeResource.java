@@ -1,10 +1,13 @@
 package gateway.resources;
 
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 
+import gateway.ConcurrentStructures.DuplicateKeyException;
 import gateway.store.Store;
 import gateway.store.beans.NodeBean;
 import gateway.store.beans.NodeBeanList;
@@ -22,10 +25,17 @@ public class NodeResource {
      * @return String that will be returned as a text/plain response.
      * @throws InterruptedException
      */
-    @GET
-    @Produces({"application/json"})
-    public NodeBeanList getOne() throws InterruptedException {
+    @POST
+    @Path("/join")
+    @Produces({ "application/json" })
+    public Response join(NodeBean joiningNode) throws InterruptedException {
         Store s = new Store();
-        return s.getNodes();
+        try {
+            s.addNode(joiningNode);
+        } catch (DuplicateKeyException e) {
+            // 409 Conflict: The user can change and repeat the request
+            return Response.status(409).entity(e.getMessage()).build();
+        }
+        return Response.ok(s.getNodes()).build();
     }
 }
