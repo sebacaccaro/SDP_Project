@@ -39,4 +39,17 @@ public class AnalystResource {
             return Response.status(500).build();
         }
     }
+
+    @GET
+    @Path("average_deviation")
+    @Produces({ "application/json" })
+    public Response getAvgAndDeviation(@QueryParam("n") int numberOfElements) {
+        Store s = new Store();
+        try {
+            return Response.ok(s.getAverageAndStandardDeviation(numberOfElements)).build();
+        } catch (InterruptedException e) {
+            // 500 Internal Server Error
+            return Response.status(500).build();
+        }
+    }
 }
