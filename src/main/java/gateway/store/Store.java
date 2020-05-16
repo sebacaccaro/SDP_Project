@@ -38,9 +38,9 @@ public class Store {
         stats.add(sb);
     }
 
-    public StatsUnitListBean getStats(StatUnitBean sb) throws InterruptedException {
+    public StatsUnitListBean getStats(int elementsToGet) throws InterruptedException {
         StatsUnitListBean statsList = new StatsUnitListBean();
-        statsList.setStats(stats.getDeepCopy());
+        statsList.setStats(stats.getDeepCopy(elementsToGet));
         return statsList;
     }
 }
