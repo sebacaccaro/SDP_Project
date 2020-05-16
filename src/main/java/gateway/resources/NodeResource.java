@@ -9,6 +9,7 @@ import javax.ws.rs.core.Response;
 import gateway.ConcurrentStructures.DuplicateKeyException;
 import gateway.store.Store;
 import gateway.store.beans.NodeBean;
+import gateway.store.beans.StatUnitBean;
 
 /**
  * Resource handler for single nodes talking to the gateway
@@ -26,7 +27,7 @@ public class NodeResource {
     @POST
     @Path("/join")
     @Produces({ "application/json" })
-    public Response join(NodeBean joiningNode){
+    public Response join(NodeBean joiningNode) {
         Store s = new Store();
         try {
             s.addNode(joiningNode);
@@ -37,7 +38,7 @@ public class NodeResource {
         } catch (InterruptedException e) {
             // 500 Internal Server Error
             return Response.status(500).build();
-        }        
+        }
     }
 
     @DELETE
@@ -47,6 +48,21 @@ public class NodeResource {
         Store s = new Store();
         try {
             s.removeNode(leavingNode.getId());
+        } catch (InterruptedException e) {
+            // 500 Internal Server Error
+            return Response.status(500).build();
+        }
+        return Response.ok().build();
+    }
+
+    /* TODO: Eventually modify it in case in change to stats*/
+    @POST
+    @Path("/send_stats")
+    @Produces({ "application/json" })
+    public Response sendStats(StatUnitBean receivedStats) {
+        Store s = new Store();
+        try {
+            s.addStat(receivedStats);
         } catch (InterruptedException e) {
             // 500 Internal Server Error
             return Response.status(500).build();
