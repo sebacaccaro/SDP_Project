@@ -1,0 +1,32 @@
+syntax = "proto3";
+package node;
+
+import "NodeData.proto";
+
+message JoinApprovalToken {
+    bool joinAllowed = 1;
+}
+
+message Token {
+    enum TokenType {
+        JOIN_APPROVAL = 0;                                        
+    }
+
+    TokenType type = 1;
+
+    JoinApprovalToken joinApprovalToken = 2;
+}
+
+message JoinResponse {
+    bool joinApproved = 1;
+    NodeData nextNode = 2;
+}
+
+message ExitingResponse {
+    NodeData nextNode = 1;
+}
+
+service NodeService {
+    rpc joinAfter (NodeData) returns (JoinResponse);
+    rpc passNext (stream Token) returns (ExitingResponse);
+}

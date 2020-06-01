@@ -1,0 +1,15 @@
+syntax = "proto3";
+package node;
+
+message HelloRequest {
+    string name = 1;
+}
+
+message HelloResponse {
+    string greeting = 1;
+}
+
+service GreetingService {
+    rpc greeting(HelloRequest) returns (HelloResponse);
+    rpc streamGreeting(HelloRequest) returns (stream HelloResponse);
+}
