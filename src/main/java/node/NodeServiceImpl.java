@@ -1,6 +1,7 @@
 package node;
 
 import gateway.store.beans.NodeBean;
+import io.grpc.internal.Stream;
 import io.grpc.stub.StreamObserver;
 import node.JoinService.ExitingResponse;
 import node.JoinService.JoinResponse;
@@ -33,7 +34,27 @@ public class NodeServiceImpl extends NodeServiceImplBase {
     @Override
     public StreamObserver<Token> passNext(StreamObserver<ExitingResponse> response) {
         // TOOD: implement
-        return null;
+
+        StreamObserver<Token> tokenStream = new StreamObserver<Token>() {
+
+            @Override
+            public void onNext(Token value) {
+                nodeRef.handleToken(value);
+            }
+
+            @Override
+            public void onError(Throwable t) {
+                // TODO Auto-generated method stub
+                t.printStackTrace();
+            }
+
+            @Override
+            public void onCompleted() {
+                // TODO Auto-generated method stub
+            }
+
+        };
+        return tokenStream;
     }
 
 }

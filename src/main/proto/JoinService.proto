@@ -3,18 +3,15 @@ package node;
 
 import "NodeData.proto";
 
-message JoinApprovalToken {
-    bool joinAllowed = 1;
-}
-
 message Token {
     enum TokenType {
-        JOIN_APPROVAL = 0;                                        
+        DATA = 0;
+        EXIT = 1;
+        SEX_AND_DRUGS = 2;                                        
     }
 
     TokenType type = 1;
-
-    JoinApprovalToken joinApprovalToken = 2;
+    string randomShit = 2;
 }
 
 message JoinResponse {

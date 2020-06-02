@@ -9,9 +9,13 @@ import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
+import io.grpc.stub.StreamObserver;
+import node.JoinService.ExitingResponse;
 import node.JoinService.JoinResponse;
+import node.JoinService.Token;
 import node.NodeDataOuterClass.NodeData;
 import node.NodeServiceGrpc.NodeServiceBlockingStub;
+import node.NodeServiceGrpc.NodeServiceStub;
 
 public class Node {
 
@@ -20,23 +24,25 @@ public class Node {
     private NodeBean next;
     private String ip = "localhost"; /* TODO: CHANGE WHEN REST CALL IS MADE */
     private List<NodeBean> nodeList;
+    private Token token;
+    StreamObserver<Token> nextNodeHandler;
 
     private static int count = -1;
 
-    public Node(int port) {
+    public Node(int port, int id) {
         count++;
         this.port = port;
-        this.id = new Random().nextInt(256);
+        this.id = id;
         // TODO: remove fixed next node
         if (count == 0) {
             NodeBean self = new NodeBean();
-            self.setId(6969);
+            self.setId(1);
             self.setIp("testID");
             self.setPort(4242);
             next = self;
         } else {
             NodeBean self = new NodeBean();
-            self.setId(1111);
+            self.setId(2);
             self.setIp("testLOL");
             self.setPort(7777);
             next = self;
@@ -70,7 +76,7 @@ public class Node {
             Server server = ServerBuilder.forPort(port).addService(new NodeServiceImpl(this)).build();
             try {
                 server.start();
-                System.out.println("** Server started for " + toNodeBean());
+                log("** Server started for " + toNodeBean());
                 server.awaitTermination();
             } catch (Exception e) {
                 System.err.println("An error has occured for nodeserver of " + toNodeBean());
@@ -83,19 +89,68 @@ public class Node {
     }
 
     public void joinAfter(NodeBean nodeToAsk) {
-        System.out.println("MAKING JOINAFTER REQUEST");
-        System.out.println("Old next: " + next);
+        log("MAKING JOINAFTER REQUEST");
+        log("Old next: " + next);
         ManagedChannel channel = ManagedChannelBuilder.forTarget(nodeToAsk.fullAddresse()).usePlaintext(true).build();
         NodeServiceBlockingStub stub = NodeServiceGrpc.newBlockingStub(channel);
         JoinResponse response = stub.joinAfter(nodeToAsk.toNodeData());
         if (response.getJoinApproved()) {
             next = new NodeBean(response.getNextNode());
-            System.out.println("JOINAFTER REQUEST DISPATCHED");
-            System.out.println("New next: " + next);
+            log("JOINAFTER REQUEST DISPATCHED");
+            log("New next: " + next);
             // TODO: open connection
         } else {
             // TODO: decide what to do
         }
+        channel.shutdown();
+    }
+
+    public void openChannelWithNode(NodeBean next) {
+        ManagedChannel channel = ManagedChannelBuilder.forTarget(next.fullAddresse()).usePlaintext(true).build();
+        NodeServiceStub stub = NodeServiceGrpc.newStub(channel);
+        nextNodeHandler = stub.passNext(new StreamObserver<ExitingResponse>() {
+
+            @Override
+            public void onNext(ExitingResponse value) {
+                // TODO Auto-generated method stub
+
+            }
+
+            @Override
+            public void onError(Throwable t) {
+                // TODO Auto-generated method stub
+
+            }
+
+            @Override
+            public void onCompleted() {
+                // TODO Auto-generated method stub
+
+            }
+        });
+    }
+
+    public void passNext(Token t) {
+        log("Called PassNext on " + t);
+        nextNodeHandler.onNext(t);
+    }
+
+    public void handleToken(Token t) {
+        // TODO: implement
+        // 1. If I can write, I write into the token
+        // 2. Pass the token next
+        log(t.toString());
+        try {
+            Thread.sleep(500);
+        } catch (InterruptedException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        passNext(t);
+    }
+
+    public void log(String toLog) {
+        System.out.println("N" + id + " >> " + toLog);
     }
 
 }
