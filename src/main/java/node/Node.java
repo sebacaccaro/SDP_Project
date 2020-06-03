@@ -26,6 +26,7 @@ public class Node {
     private List<NodeBean> nodeList;
     private Token token;
     StreamObserver<Token> nextNodeHandler;
+    ManagedChannel nextNodeChannel = null;
 
     private static int count = -1;
 
@@ -33,22 +34,7 @@ public class Node {
         count++;
         this.port = port;
         this.id = id;
-        // TODO: remove fixed next node
-        if (count == 0) {
-            NodeBean self = new NodeBean();
-            self.setId(1);
-            self.setIp("testID");
-            self.setPort(4242);
-            next = self;
-        } else {
-            NodeBean self = new NodeBean();
-            self.setId(2);
-            self.setIp("testLOL");
-            self.setPort(7777);
-            next = self;
-        }
-        //
-
+        this.next = this.toNodeBean();
     }
 
     public NodeBean toNodeBean() {
@@ -69,15 +55,20 @@ public class Node {
 
     public void setNext(NodeBean newNext) {
         next = newNext;
+        Thread channelThread = new Thread(() -> {
+            openChannelWithNode(next);
+        });
+        channelThread.start();
     }
 
-    public void init() throws IOException, InterruptedException {
+    public void startServer() {
         Runnable r = () -> {
             Server server = ServerBuilder.forPort(port).addService(new NodeServiceImpl(this)).build();
             try {
                 server.start();
-                log("** Server started for " + toNodeBean());
+                log("** Server started");
                 server.awaitTermination();
+                log("## Server terminated");
             } catch (Exception e) {
                 System.err.println("An error has occured for nodeserver of " + toNodeBean());
                 e.printStackTrace();
@@ -85,20 +76,23 @@ public class Node {
         };
         Thread serverThread = new Thread(r);
         serverThread.start();
+    }
 
+    public void init() throws IOException, InterruptedException {
+        startServer();
+        Thread.sleep(2000);
+
+        MockServer ms = new MockServer();
+        List<NodeBean> nodes = ms.register(this.toNodeBean());
+        joinAfter(nodes.get(0));
     }
 
     public void joinAfter(NodeBean nodeToAsk) {
-        log("MAKING JOINAFTER REQUEST");
-        log("Old next: " + next);
         ManagedChannel channel = ManagedChannelBuilder.forTarget(nodeToAsk.fullAddresse()).usePlaintext(true).build();
         NodeServiceBlockingStub stub = NodeServiceGrpc.newBlockingStub(channel);
-        JoinResponse response = stub.joinAfter(nodeToAsk.toNodeData());
+        JoinResponse response = stub.joinAfter(this.toNodeData());
         if (response.getJoinApproved()) {
-            next = new NodeBean(response.getNextNode());
-            log("JOINAFTER REQUEST DISPATCHED");
-            log("New next: " + next);
-            // TODO: open connection
+            setNext(new NodeBean(response.getNextNode()));
         } else {
             // TODO: decide what to do
         }
@@ -106,8 +100,12 @@ public class Node {
     }
 
     public void openChannelWithNode(NodeBean next) {
-        ManagedChannel channel = ManagedChannelBuilder.forTarget(next.fullAddresse()).usePlaintext(true).build();
-        NodeServiceStub stub = NodeServiceGrpc.newStub(channel);
+        if (nextNodeChannel != null) {
+            nextNodeHandler.onCompleted();
+            nextNodeChannel.shutdown();
+        }
+        nextNodeChannel = ManagedChannelBuilder.forTarget(next.fullAddresse()).usePlaintext(true).build();
+        NodeServiceStub stub = NodeServiceGrpc.newStub(nextNodeChannel);
         nextNodeHandler = stub.passNext(new StreamObserver<ExitingResponse>() {
 
             @Override
@@ -119,19 +117,22 @@ public class Node {
             @Override
             public void onError(Throwable t) {
                 // TODO Auto-generated method stub
-
+                log("Errore !");
+                t.printStackTrace();
             }
 
             @Override
             public void onCompleted() {
                 // TODO Auto-generated method stub
+                log("Completato!");
 
             }
         });
+
+        log("Opened channel with N" + next.getId());
     }
 
     public void passNext(Token t) {
-        log("Called PassNext on " + t);
         nextNodeHandler.onNext(t);
     }
 
@@ -139,9 +140,9 @@ public class Node {
         // TODO: implement
         // 1. If I can write, I write into the token
         // 2. Pass the token next
-        log(t.toString());
+        log("GOT TOKEN $" + t.toString());
         try {
-            Thread.sleep(500);
+            Thread.sleep(1500);
         } catch (InterruptedException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();

@@ -6,17 +6,19 @@ import node.JoinService.Token;
 
 public class Empty {
     public static void main(String[] args) throws IOException, InterruptedException {
-        Node n1 = new Node(9999, 1);
-        Node n2 = new Node(8888, 2);
+        Node n1 = new Node(1111, 1);
+        Node n2 = new Node(2222, 2);
+        Node n3 = new Node(3333, 3);
 
         n1.init();
+        Thread.sleep(1000);
         n2.init();
-        Thread.sleep(3000);
-        System.out.println("TIMEOUTOVER");
-        n2.openChannelWithNode(n1.toNodeBean());
-        n1.openChannelWithNode(n2.toNodeBean());
+        Thread.sleep(1000);
+        n3.init();
+
+        Thread.sleep(1000);
         Token t1 = Token.newBuilder().setRandomShit("Token1").build();
-        Thread.sleep(3000);
-        n2.passNext(t1);
+        n1.passNext(t1);
+
     }
 }

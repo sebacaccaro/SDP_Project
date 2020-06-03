@@ -28,12 +28,16 @@ public class NodeServiceImpl extends NodeServiceImplBase {
                 .setNextNode(nodeRef.getNext().toNodeData()).build();
         responseStream.onNext(response);
         responseStream.onCompleted();
-        nodeRef.setNext(new NodeBean(joiningNode));
+        nodeRef.log("SetNext Called From server to " + new NodeBean(joiningNode));
+        if (joiningNode.getId() != nodeRef.toNodeBean().getId()) {
+            nodeRef.setNext(new NodeBean(joiningNode));
+        }
     }
 
     @Override
     public StreamObserver<Token> passNext(StreamObserver<ExitingResponse> response) {
         // TOOD: implement
+        nodeRef.log("Started passnext server");
 
         StreamObserver<Token> tokenStream = new StreamObserver<Token>() {
 
@@ -50,7 +54,7 @@ public class NodeServiceImpl extends NodeServiceImplBase {
 
             @Override
             public void onCompleted() {
-                // TODO Auto-generated method stub
+                nodeRef.log("Connection Terminated");
             }
 
         };
