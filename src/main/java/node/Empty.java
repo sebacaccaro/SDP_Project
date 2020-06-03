@@ -3,6 +3,7 @@ package node;
 import java.io.IOException;
 
 import node.JoinService.Token;
+import node.JoinService.Token.Builder;
 
 public class Empty {
     public static void main(String[] args) throws IOException, InterruptedException {
@@ -12,6 +13,7 @@ public class Empty {
         Node n4 = new Node(4444, 4);
 
         n1.init();
+
         Thread.sleep(1000);
         n2.init();
         Thread.sleep(1000);
@@ -20,11 +22,11 @@ public class Empty {
         n4.init();
 
         Thread.sleep(1000);
-        Token t1 = Token.newBuilder().setEmitterId(5).build();
+        Token t1 = Token.newBuilder().setEmitterId(800).setTokenBuisy(false).build();
         n1.passNext(t1);
 
         Thread.sleep(1000);
-        n2.exitRing();
+        // n2.exitRing();
 
     }
 }

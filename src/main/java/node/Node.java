@@ -2,7 +2,6 @@ package node;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Random;
 
 import gateway.store.beans.NodeBean;
 import io.grpc.ManagedChannel;
@@ -17,6 +16,8 @@ import node.JoinService.Token.TokenType;
 import node.NodeDataOuterClass.NodeData;
 import node.NodeServiceGrpc.NodeServiceBlockingStub;
 import node.NodeServiceGrpc.NodeServiceStub;
+import node.PMSensor.PM10Simulator;
+import node.StatOuterClass.Stat;
 
 public class Node {
 
@@ -24,16 +25,15 @@ public class Node {
     private int id;
     private NodeBean next;
     private String ip = "localhost"; /* TODO: CHANGE WHEN REST CALL IS MADE */
-    private boolean exiting = false;
+    private boolean exiting = false; /* TODO: if node is exiting, don't accept requestes */
     private List<NodeBean> nodeList;
     private Server nodeServer = null;
+    private SlidingWindowBuffer buffer = new SlidingWindowBuffer();
+    private PM10Simulator sensor;
     StreamObserver<Token> nextNodeHandler;
     ManagedChannel nextNodeChannel = null;
 
-    private static int count = -1;
-
     public Node(int port, int id) {
-        count++;
         this.port = port;
         this.id = id;
         this.next = this.toNodeBean();
@@ -80,7 +80,16 @@ public class Node {
         serverThread.start();
     }
 
+    public void startSensor() {
+        sensor = new PM10Simulator(buffer);
+        Thread sensorThread = new Thread(() -> {
+            sensor.run();
+        });
+        sensorThread.start();
+    }
+
     public void init() throws IOException, InterruptedException {
+        startSensor();
         startServer();
         delay(2000);
 
@@ -101,7 +110,7 @@ public class Node {
         channel.shutdown();
     }
 
-    public void openChannelWithNode(NodeBean next) {
+    public synchronized void openChannelWithNode(NodeBean next) {
         if (nextNodeChannel != null) {
             nextNodeHandler.onCompleted();
             nextNodeChannel.shutdown();
@@ -125,9 +134,6 @@ public class Node {
 
             @Override
             public void onCompleted() {
-                // TODO Auto-generated method stub
-                log("Completato!");
-
             }
         });
 
@@ -135,17 +141,20 @@ public class Node {
     }
 
     public void passNext(Token t) {
+        // log(nextNodeHandler == null ? "NULL" : "NOT NULL");
         nextNodeHandler.onNext(t);
     }
 
     public void handleToken(Token t) {
-        // TODO: implement
-        // 1. If I can write, I write into the token
-        // 2. Pass the token next
+        /*
+         * TODO: I token devono arrivare e uscire in ordine. Posso prendere quello
+         * arrivato con il timestamp minore
+         */
         log("GOT TOKEN $" + t.getType());
         delay(1500);
         switch (t.getType()) {
             case DATA:
+                t = handleAndGenerateDataToken(t);
                 passNext(t);
                 break;
 
@@ -154,6 +163,7 @@ public class Node {
                 if (emitterId == id) {
                     log("Getting out for good");
                     nodeServer.shutdown();
+                    sensor.stopMeGently();
                 } else if (emitterId == next.getId()) {
                     passNext(t);
                     setNext(new NodeBean(t.getNext()));
@@ -163,6 +173,26 @@ public class Node {
                 break;
             default:
                 break;
+        }
+    }
+
+    public Token handleAndGenerateDataToken(Token received) {
+        Stat localStat = buffer.getLastStat();
+        if (received.getTokenBuisy() && received.getEmitterId() == id) {
+            // TODO : send token
+            log("Sending token home" + received);
+            received = Token.newBuilder().setType(TokenType.DATA).setEmitterId(id).setTokenBuisy(false).build();
+        }
+
+        if (localStat != null) {
+            if (received.getTokenBuisy() == false) { /* TODO: correct type */
+                return Token.newBuilder().setType(TokenType.DATA).setEmitterId(id).setTokenBuisy(true)
+                        .addStat(localStat).build();
+            } else {
+                return received.toBuilder().addStat(localStat).setTokenBuisy(true).build();
+            }
+        } else {
+            return received;
         }
     }
 

@@ -2,18 +2,21 @@ syntax = "proto3";
 package node;
 
 import "NodeData.proto";
+import "Stat.proto";
 
 message Token {
     enum TokenType {
         DATA = 0;
-        EXIT = 1;
-        SEX_AND_DRUGS = 2;                                        
+        EXIT = 1;                                    
     }
 
     TokenType type = 1;
     
-    int32 emitterId = 2; //JUST FOR EXITING
-    NodeData next   = 3; //JUST FOR EXITING
+    int32 emitterId = 2; //JUST FOR EXIT
+    NodeData next   = 3; //JUST FOR EXIT
+
+    bool tokenBuisy = 4;
+    repeated Stat stat = 5; //JUST FOR DATA
 }
 
 message JoinResponse {
