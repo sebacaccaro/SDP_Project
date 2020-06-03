@@ -11,7 +11,9 @@ message Token {
     }
 
     TokenType type = 1;
-    string randomShit = 2;
+    
+    int32 emitterId = 2; //JUST FOR EXITING
+    NodeData next   = 3; //JUST FOR EXITING
 }
 
 message JoinResponse {

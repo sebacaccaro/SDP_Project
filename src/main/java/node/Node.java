@@ -13,6 +13,7 @@ import io.grpc.stub.StreamObserver;
 import node.JoinService.ExitingResponse;
 import node.JoinService.JoinResponse;
 import node.JoinService.Token;
+import node.JoinService.Token.TokenType;
 import node.NodeDataOuterClass.NodeData;
 import node.NodeServiceGrpc.NodeServiceBlockingStub;
 import node.NodeServiceGrpc.NodeServiceStub;
@@ -23,8 +24,9 @@ public class Node {
     private int id;
     private NodeBean next;
     private String ip = "localhost"; /* TODO: CHANGE WHEN REST CALL IS MADE */
+    private boolean exiting = false;
     private List<NodeBean> nodeList;
-    private Token token;
+    private Server nodeServer = null;
     StreamObserver<Token> nextNodeHandler;
     ManagedChannel nextNodeChannel = null;
 
@@ -63,11 +65,11 @@ public class Node {
 
     public void startServer() {
         Runnable r = () -> {
-            Server server = ServerBuilder.forPort(port).addService(new NodeServiceImpl(this)).build();
+            nodeServer = ServerBuilder.forPort(port).addService(new NodeServiceImpl(this)).build();
             try {
-                server.start();
+                nodeServer.start();
                 log("** Server started");
-                server.awaitTermination();
+                nodeServer.awaitTermination();
                 log("## Server terminated");
             } catch (Exception e) {
                 System.err.println("An error has occured for nodeserver of " + toNodeBean());
@@ -80,7 +82,7 @@ public class Node {
 
     public void init() throws IOException, InterruptedException {
         startServer();
-        Thread.sleep(2000);
+        delay(2000);
 
         MockServer ms = new MockServer();
         List<NodeBean> nodes = ms.register(this.toNodeBean());
@@ -140,18 +142,49 @@ public class Node {
         // TODO: implement
         // 1. If I can write, I write into the token
         // 2. Pass the token next
-        log("GOT TOKEN $" + t.toString());
-        try {
-            Thread.sleep(1500);
-        } catch (InterruptedException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+        log("GOT TOKEN $" + t.getType());
+        delay(1500);
+        switch (t.getType()) {
+            case DATA:
+                passNext(t);
+                break;
+
+            case EXIT:
+                int emitterId = t.getEmitterId();
+                if (emitterId == id) {
+                    log("Getting out for good");
+                    nodeServer.shutdown();
+                } else if (emitterId == next.getId()) {
+                    passNext(t);
+                    setNext(new NodeBean(t.getNext()));
+                } else {
+                    passNext(t);
+                }
+                break;
+            default:
+                break;
         }
-        passNext(t);
+    }
+
+    public void exitRing() {
+        log("Emitting leave token");
+        Token exitToken = Token.newBuilder().setType(TokenType.EXIT).setEmitterId(id).setNext(next.toNodeData())
+                .build();
+        exiting = true;
+        passNext(exitToken);
     }
 
     public void log(String toLog) {
         System.out.println("N" + id + " >> " + toLog);
+    }
+
+    public static void delay(int delayMs) {
+        try {
+            Thread.sleep(delayMs);
+        } catch (InterruptedException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
     }
 
 }
