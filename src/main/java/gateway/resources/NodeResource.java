@@ -3,6 +3,7 @@ package gateway.resources;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Response;
 
@@ -42,12 +43,12 @@ public class NodeResource {
     }
 
     @DELETE
-    @Path("/leave")
+    @Path("/leave/{id}")
     @Produces({ "application/json" })
-    public Response leave(NodeBean leavingNode) {
+    public Response leave(@PathParam("id") int id) {
         Store s = new Store();
         try {
-            s.removeNode(leavingNode.getId());
+            s.removeNode(id);
         } catch (InterruptedException e) {
             // 500 Internal Server Error
             return Response.status(500).build();

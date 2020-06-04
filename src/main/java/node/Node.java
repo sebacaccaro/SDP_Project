@@ -193,6 +193,11 @@ public class Node {
                         log("Getting out for good");
                         nodeServer.shutdown();
                         sensor.stopMeGently();
+                        WebTarget gatewayPath = ClientBuilder.newClient()
+                                .target("http://localhost:1337/node/leave/" + id);
+                        Invocation.Builder invocationBuilder = gatewayPath.request(MediaType.APPLICATION_JSON);
+                        Response r = invocationBuilder.delete();
+                        log("" + r.getStatus());
                     } else if (emitterId == next.getId()) {
                         passNext(t);
                         setNext(new NodeBean(t.getNext()));
