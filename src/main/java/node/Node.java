@@ -23,6 +23,7 @@ import io.grpc.stub.StreamObserver;
 import node.JoinService.ExitingResponse;
 import node.JoinService.JoinResponse;
 import node.JoinService.Token;
+import node.JoinService.Token.Builder;
 import node.JoinService.Token.TokenType;
 import node.NodeDataOuterClass.NodeData;
 import node.NodeServiceGrpc.NodeServiceBlockingStub;
@@ -41,8 +42,7 @@ public class Node {
     private Server nodeServer = null;
     private SlidingWindowBuffer buffer = new SlidingWindowBuffer();
     private PM10Simulator sensor;
-    long lastTokenWritten = 0;
-    long lastTokenSkipped = 0;
+    private boolean hasSkipBadge = false;
     StreamObserver<Token> nextNodeHandler;
     ManagedChannel nextNodeChannel = null;
 
@@ -173,7 +173,7 @@ public class Node {
                 Collections.sort(keys);
                 tokenQueue.remove(keys.get(0));
             }
-            log("GOT TOKEN $" + t.getType());
+            // log("GOT TOKEN $" + t.getType());
             delay(10);
             switch (t.getType()) {
                 case DATA:
@@ -201,39 +201,35 @@ public class Node {
     }
 
     public Token handleAndGenerateDataToken(Token received) {
-        log("" + received.getSkips());
-        Stat localStat = buffer.getLastStat();
-        if (received.getTokenBuisy() && received.getEmitterId() == id && received.getSkips() == 0) {
-            sendStatToGateway(mean(received.getStatList()));
-            log("Sending token home" + received);
-            lastTokenWritten = new Date().getTime();
-            received = Token.newBuilder().setType(TokenType.DATA).setEmitterId(id).setTokenBuisy(false).setSkips(0)
-                    .setCreationTime(lastTokenWritten).build();
+        List<Integer> written = new LinkedList<Integer>(received.getWritesList());
+        List<Integer> skipped = new LinkedList<Integer>(received.getSkipsList());
+
+        if (exiting && !skipped.contains(id)) {
+            return received;
         }
 
-        if (localStat != null) {
-            if (received.getTokenBuisy() == false) { /* TODO: correct type */
-                return Token.newBuilder().setType(TokenType.DATA).setEmitterId(id).setTokenBuisy(true)
-                        .addStat(localStat).setSkips(0).build();
+        if (written.contains(id)) {
+            if (skipped.size() == 0) {
+                // Token is full: I send it and emit a new one
+                sendStatToGateway(mean(received.getStatList()));
+                return Token.newBuilder().setType(TokenType.DATA).build();
             } else {
-                if (lastTokenWritten == received.getCreationTime()) {
-                    return received;
-                } else {
-                    lastTokenWritten = received.getCreationTime();
-                    return received.toBuilder().addStat(localStat).setTokenBuisy(true).setSkips(received.getSkips() - 1)
-                            .build();
-                }
+                // I don't have to do anything, I just pass on the token
+                return received;
             }
         } else {
-            if (received.getCreationTime() == lastTokenWritten || lastTokenWritten == 0) {
-                return received;
+            if (buffer.isValueProduced()) {
+                // Metto valore dentro e rimuovo il mio eventuale skip
+                skipped.remove(new Integer(id));
+                return received.toBuilder().addStat(buffer.getLastStat()).clearSkips().addAllSkips(skipped)
+                        .addWrites(id).build();
             } else {
-                if (lastTokenSkipped != received.getCreationTime()) {
-                    lastTokenSkipped = received.getCreationTime();
-                    return received.toBuilder().setSkips(received.getSkips() + 1).build();
-                } else {
-                    return received;
+                int skipIndex = skipped.indexOf(id);
+                Builder b = received.toBuilder();
+                if (skipIndex == -1) {
+                    b.addSkips(id);
                 }
+                return b.build();
             }
         }
     }

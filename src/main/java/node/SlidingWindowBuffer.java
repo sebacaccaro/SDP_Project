@@ -42,6 +42,10 @@ public class SlidingWindowBuffer implements Buffer {
         return ret;
     }
 
+    public boolean isValueProduced() {
+        return lastStat != null;
+    }
+
     private static Measurement mean(List<Measurement> measurements) {
         double value = 0;
         long timestamp = 0;
