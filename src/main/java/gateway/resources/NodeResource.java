@@ -55,13 +55,14 @@ public class NodeResource {
         return Response.ok().build();
     }
 
-    /* TODO: Eventually modify it in case in change to stats*/
+    /* TODO: Eventually modify it in case in change to stats */
     @POST
     @Path("/send_stats")
     @Produces({ "application/json" })
     public Response sendStats(StatUnitBean receivedStats) {
         Store s = new Store();
         try {
+            System.out.println("Gateway: " + receivedStats);
             s.addStat(receivedStats);
         } catch (InterruptedException e) {
             // 500 Internal Server Error

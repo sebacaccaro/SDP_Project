@@ -62,7 +62,7 @@ public class Store {
 
         double[] values = new double[stats.size()];
         for (int i = 0; i < stats.size(); i++) {
-            values[i] = stats.get(i).getMockstat();
+            values[i] = stats.get(i).getValue();
         }
 
         StandardDeviation sd = new StandardDeviation();

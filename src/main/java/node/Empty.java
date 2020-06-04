@@ -2,6 +2,7 @@ package node;
 
 import java.io.IOException;
 
+import gateway.store.beans.StatUnitBean;
 import node.JoinService.Token;
 import node.JoinService.Token.Builder;
 
@@ -24,9 +25,6 @@ public class Empty {
         Thread.sleep(1000);
         Token t1 = Token.newBuilder().setEmitterId(800).setTokenBuisy(false).build();
         n1.passNext(t1);
-
-        Thread.sleep(1000);
-        // n2.exitRing();
 
     }
 }

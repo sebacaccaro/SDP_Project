@@ -6,37 +6,37 @@ import gateway.ConcurrentStructures.CloneInterface;
 
 @XmlRootElement
 public class StatUnitBean implements CloneInterface<StatUnitBean> {
-    private int timestamp; // TODO: seconds or milliseconds?
-    private double mockstat; // TODO: change with actual stat
+    private long timestamp;
+    private double value; // TODO: change with actual stat
 
     public StatUnitBean() {
     }
 
-    public int getTimestamp() {
+    public long getTimestamp() {
         return this.timestamp;
     }
 
-    public void setTimestamp(int timestamp) {
+    public void setTimestamp(long timestamp) {
         this.timestamp = timestamp;
     }
 
-    public double getMockstat() {
-        return this.mockstat;
+    public double getValue() {
+        return this.value;
     }
 
-    public void setMockstat(double mockstat) {
-        this.mockstat = mockstat;
+    public void setValue(double value) {
+        this.value = value;
     }
 
     public StatUnitBean clone() {
         StatUnitBean cloned = new StatUnitBean();
-        cloned.setMockstat(this.mockstat);
+        cloned.setValue(this.value);
         cloned.setTimestamp(this.timestamp);
         return cloned;
     }
 
     /* TODO: fix with real time */
     public String toString() {
-        return "Time: " + timestamp + " Stat: " + mockstat;
+        return "Time: " + timestamp + " Stat: " + value;
     }
 }

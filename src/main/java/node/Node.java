@@ -7,7 +7,14 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 
+import javax.ws.rs.client.ClientBuilder;
+import javax.ws.rs.client.Entity;
+import javax.ws.rs.client.Invocation;
+import javax.ws.rs.client.WebTarget;
+import javax.ws.rs.core.MediaType;
+
 import gateway.store.beans.NodeBean;
+import gateway.store.beans.StatUnitBean;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.Server;
@@ -195,6 +202,7 @@ public class Node {
         Stat localStat = buffer.getLastStat();
         if (received.getTokenBuisy() && received.getEmitterId() == id) {
             // TODO : send token and calculate stats
+            sendStatToGateway(mean(received.getStatList()));
             log("Sending token home" + received);
             received = Token.newBuilder().setType(TokenType.DATA).setEmitterId(id).setTokenBuisy(false).build();
         }
@@ -211,12 +219,33 @@ public class Node {
         }
     }
 
+    public StatUnitBean mean(List<Stat> stats) {
+        double value = 0;
+        long timestamp = 0;
+        for (Stat s : stats) {
+            value += s.getValue();
+            timestamp += s.getTimestamp();
+        }
+        StatUnitBean m = new StatUnitBean();
+        m.setValue(value / stats.size());
+        m.setTimestamp(timestamp = (long) (timestamp * 1.0 / stats.size()));
+        return m;
+    }
+
     public void exitRing() {
         log("Emitting leave token");
         Token exitToken = Token.newBuilder().setType(TokenType.EXIT).setEmitterId(id).setNext(next.toNodeData())
                 .build();
         exiting = true;
         passNext(exitToken);
+    }
+
+    public void sendStatToGateway(StatUnitBean sb) {
+        new Thread(() -> {
+            WebTarget gatewayPath = ClientBuilder.newClient().target("http://localhost:1337/node/send_stats");
+            Invocation.Builder invocationBuilder = gatewayPath.request(MediaType.APPLICATION_JSON);
+            invocationBuilder.post(Entity.json(sb));
+        }).start();
     }
 
     public void log(String toLog) {

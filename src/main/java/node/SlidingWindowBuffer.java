@@ -42,15 +42,15 @@ public class SlidingWindowBuffer implements Buffer {
         return ret;
     }
 
-    private Measurement mean(List<Measurement> measurements) {
+    private static Measurement mean(List<Measurement> measurements) {
         double value = 0;
         long timestamp = 0;
         for (Measurement m : measurements) {
             value += m.getValue();
             timestamp += m.getTimestamp();
         }
-        value = value / SLIDING_WINDOW_SIZE;
-        timestamp = (long) (timestamp * 1.0 / SLIDING_WINDOW_SIZE);
+        value = value / measurements.size();
+        timestamp = (long) (timestamp * 1.0 / measurements.size());
         return new Measurement(measurements.get(0).getId(), measurements.get(0).getType(), value, timestamp);
     }
 

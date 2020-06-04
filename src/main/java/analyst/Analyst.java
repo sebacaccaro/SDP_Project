@@ -14,6 +14,7 @@ import gateway.store.beans.NumberOfNodesBean;
 import gateway.store.beans.StatsUnitListBean;
 
 public class Analyst {
+    // TODO: dynamic server
     private static WebTarget webTarget = ClientBuilder.newClient().target("http://localhost:1337/analyst");
 
     public static void main(String[] args) throws IOException {
