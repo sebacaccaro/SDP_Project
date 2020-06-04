@@ -41,6 +41,8 @@ public class Node {
     private Server nodeServer = null;
     private SlidingWindowBuffer buffer = new SlidingWindowBuffer();
     private PM10Simulator sensor;
+    long lastTokenWritten = 0;
+    long lastTokenSkipped = 0;
     StreamObserver<Token> nextNodeHandler;
     ManagedChannel nextNodeChannel = null;
 
@@ -172,7 +174,7 @@ public class Node {
                 tokenQueue.remove(keys.get(0));
             }
             log("GOT TOKEN $" + t.getType());
-            delay(1500);
+            delay(10);
             switch (t.getType()) {
                 case DATA:
                     t = handleAndGenerateDataToken(t);
@@ -199,23 +201,40 @@ public class Node {
     }
 
     public Token handleAndGenerateDataToken(Token received) {
+        log("" + received.getSkips());
         Stat localStat = buffer.getLastStat();
-        if (received.getTokenBuisy() && received.getEmitterId() == id) {
-            // TODO : send token and calculate stats
+        if (received.getTokenBuisy() && received.getEmitterId() == id && received.getSkips() == 0) {
             sendStatToGateway(mean(received.getStatList()));
             log("Sending token home" + received);
-            received = Token.newBuilder().setType(TokenType.DATA).setEmitterId(id).setTokenBuisy(false).build();
+            lastTokenWritten = new Date().getTime();
+            received = Token.newBuilder().setType(TokenType.DATA).setEmitterId(id).setTokenBuisy(false).setSkips(0)
+                    .setCreationTime(lastTokenWritten).build();
         }
 
         if (localStat != null) {
             if (received.getTokenBuisy() == false) { /* TODO: correct type */
                 return Token.newBuilder().setType(TokenType.DATA).setEmitterId(id).setTokenBuisy(true)
-                        .addStat(localStat).build();
+                        .addStat(localStat).setSkips(0).build();
             } else {
-                return received.toBuilder().addStat(localStat).setTokenBuisy(true).build();
+                if (lastTokenWritten == received.getCreationTime()) {
+                    return received;
+                } else {
+                    lastTokenWritten = received.getCreationTime();
+                    return received.toBuilder().addStat(localStat).setTokenBuisy(true).setSkips(received.getSkips() - 1)
+                            .build();
+                }
             }
         } else {
-            return received;
+            if (received.getCreationTime() == lastTokenWritten || lastTokenWritten == 0) {
+                return received;
+            } else {
+                if (lastTokenSkipped != received.getCreationTime()) {
+                    lastTokenSkipped = received.getCreationTime();
+                    return received.toBuilder().setSkips(received.getSkips() + 1).build();
+                } else {
+                    return received;
+                }
+            }
         }
     }
 

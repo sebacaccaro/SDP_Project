@@ -15,14 +15,11 @@ public class Empty {
 
         n1.init();
 
-        Thread.sleep(1000);
-        n2.init();
-        Thread.sleep(1000);
-        n3.init();
-        Thread.sleep(1000);
-        n4.init();
-
-        Thread.sleep(1000);
+        /*
+         * Thread.sleep(1000); n2.init(); Thread.sleep(1000); n3.init();
+         * Thread.sleep(1000); n4.init(); Thread.sleep(5000);
+         */
+        Thread.sleep(2000);
         Token t1 = Token.newBuilder().setEmitterId(800).setTokenBuisy(false).build();
         n1.passNext(t1);
 

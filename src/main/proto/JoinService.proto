@@ -15,8 +15,10 @@ message Token {
     int32 emitterId = 2; //JUST FOR EXIT
     NodeData next   = 3; //JUST FOR EXIT
 
-    bool tokenBuisy = 4;
+    bool tokenBuisy = 4; //JUST FOR EXIT
     repeated Stat stat = 5; //JUST FOR DATA
+    int32 skips = 6; //JUST FOR DATA
+    int64 creationTime = 7; //JUST FOR DATA
 }
 
 message JoinResponse {
