@@ -12,8 +12,10 @@ import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.Invocation;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 
 import gateway.store.beans.NodeBean;
+import gateway.store.beans.NodeBeanList;
 import gateway.store.beans.StatUnitBean;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
@@ -106,8 +108,12 @@ public class Node {
         startServer();
         delay(2000);
 
-        MockServer ms = new MockServer();
-        List<NodeBean> nodes = ms.register(this.toNodeBean());
+        WebTarget gatewayPath = ClientBuilder.newClient().target("http://localhost:1337/node/join");
+        Invocation.Builder invocationBuilder = gatewayPath.request(MediaType.APPLICATION_JSON);
+        List<NodeBean> nodes = invocationBuilder.post(Entity.json(this.toNodeBean()), NodeBeanList.class).getNodes();
+
+        // MockServer ms = new MockServer();
+        // List<NodeBean> nodes = ms.register(this.toNodeBean());
         joinAfter(nodes.get(0));
     }
 
