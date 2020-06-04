@@ -27,7 +27,7 @@ public class Empty {
          */
 
         n4.init();
-        Thread.sleep(2000);
+        Thread.sleep(20000);
         n4.exitRing();
 
     }

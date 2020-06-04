@@ -74,6 +74,9 @@ public class Node {
         next = newNext;
         Thread channelThread = new Thread(() -> {
             openChannelWithNode(next);
+            if (nodeList.size() == 1) {
+                passNext(Token.newBuilder().setType(TokenType.DATA).build());
+            }
         });
         channelThread.start();
     }
@@ -110,11 +113,11 @@ public class Node {
 
         WebTarget gatewayPath = ClientBuilder.newClient().target("http://localhost:1337/node/join");
         Invocation.Builder invocationBuilder = gatewayPath.request(MediaType.APPLICATION_JSON);
-        List<NodeBean> nodes = invocationBuilder.post(Entity.json(this.toNodeBean()), NodeBeanList.class).getNodes();
+        nodeList = invocationBuilder.post(Entity.json(this.toNodeBean()), NodeBeanList.class).getNodes();
 
         // MockServer ms = new MockServer();
-        // List<NodeBean> nodes = ms.register(this.toNodeBean());
-        joinAfter(nodes.get(0));
+        // List<NodeBean> nodeList = ms.register(this.toNodeBean());
+        joinAfter(nodeList.get(0));
     }
 
     public void joinAfter(NodeBean nodeToAsk) {
@@ -141,7 +144,6 @@ public class Node {
             @Override
             public void onNext(ExitingResponse value) {
                 // TODO Auto-generated method stub
-
             }
 
             @Override
