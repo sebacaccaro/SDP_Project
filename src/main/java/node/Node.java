@@ -1,6 +1,10 @@
 package node;
 
 import java.io.IOException;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 
 import gateway.store.beans.NodeBean;
@@ -141,45 +145,56 @@ public class Node {
     }
 
     public void passNext(Token t) {
-        // log(nextNodeHandler == null ? "NULL" : "NOT NULL");
         nextNodeHandler.onNext(t);
     }
 
+    private HashMap<Long, Token> tokenQueue = new HashMap<Long, Token>();
+
     public void handleToken(Token t) {
         /*
-         * TODO: I token devono arrivare e uscire in ordine. Posso prendere quello
-         * arrivato con il timestamp minore
+         * TODO: Commentare per fare lo sbrone
          */
-        log("GOT TOKEN $" + t.getType());
-        delay(1500);
-        switch (t.getType()) {
-            case DATA:
-                t = handleAndGenerateDataToken(t);
-                passNext(t);
-                break;
+        synchronized (tokenQueue) {
+            tokenQueue.put(new Date().getTime(), t);
+        }
 
-            case EXIT:
-                int emitterId = t.getEmitterId();
-                if (emitterId == id) {
-                    log("Getting out for good");
-                    nodeServer.shutdown();
-                    sensor.stopMeGently();
-                } else if (emitterId == next.getId()) {
+        synchronized (this) {
+            synchronized (tokenQueue) {
+                List<Long> keys = new LinkedList<Long>(tokenQueue.keySet());
+                Collections.sort(keys);
+                tokenQueue.remove(keys.get(0));
+            }
+            log("GOT TOKEN $" + t.getType());
+            delay(1500);
+            switch (t.getType()) {
+                case DATA:
+                    t = handleAndGenerateDataToken(t);
                     passNext(t);
-                    setNext(new NodeBean(t.getNext()));
-                } else {
-                    passNext(t);
-                }
-                break;
-            default:
-                break;
+                    break;
+
+                case EXIT:
+                    int emitterId = t.getEmitterId();
+                    if (emitterId == id) {
+                        log("Getting out for good");
+                        nodeServer.shutdown();
+                        sensor.stopMeGently();
+                    } else if (emitterId == next.getId()) {
+                        passNext(t);
+                        setNext(new NodeBean(t.getNext()));
+                    } else {
+                        passNext(t);
+                    }
+                    break;
+                default:
+                    break;
+            }
         }
     }
 
     public Token handleAndGenerateDataToken(Token received) {
         Stat localStat = buffer.getLastStat();
         if (received.getTokenBuisy() && received.getEmitterId() == id) {
-            // TODO : send token
+            // TODO : send token and calculate stats
             log("Sending token home" + received);
             received = Token.newBuilder().setType(TokenType.DATA).setEmitterId(id).setTokenBuisy(false).build();
         }
