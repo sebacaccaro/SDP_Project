@@ -106,6 +106,26 @@ public class Node {
         sensorThread.start();
     }
 
+    public void showConsole() {
+        new Thread(() -> {
+            log("######################################");
+            log("#######   SDP Project NODE  " + id + "  #######");
+            log("#### Sebastiano Caccaro AA.18/19 #####");
+            log("######################################");
+            log("");
+            log("Press ENTER at any moment to shutdown NODE" + id);
+            log("-------------------------------------------");
+            try {
+                System.in.read();
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+            log("Shutting down the Node, please wait a moment :)");
+            exitRing();
+        }).start();
+    }
+
     public void init() throws IOException, InterruptedException {
         startSensor();
         startServer();
@@ -118,6 +138,7 @@ public class Node {
         // MockServer ms = new MockServer();
         // List<NodeBean> nodeList = ms.register(this.toNodeBean());
         joinAfter(nodeList.get(0));
+        showConsole();
     }
 
     public void joinAfter(NodeBean nodeToAsk) {
@@ -149,8 +170,6 @@ public class Node {
             @Override
             public void onError(Throwable t) {
                 // TODO Auto-generated method stub
-                log("Errore !");
-                t.printStackTrace();
             }
 
             @Override
@@ -185,15 +204,18 @@ public class Node {
             delay(10);
             switch (t.getType()) {
                 case DATA:
-                    t = handleAndGenerateDataToken(t);
-                    passNext(t);
+                    if (!(exiting && id == next.getId())) {
+                        t = handleAndGenerateDataToken(t);
+                        passNext(t);
+                    }
                     break;
 
                 case EXIT:
                     int emitterId = t.getEmitterId();
                     if (emitterId == id) {
                         log("Getting out for good");
-                        nodeServer.shutdown();
+                        nextNodeHandler.onCompleted();
+                        nodeServer.shutdownNow();
                         sensor.stopMeGently();
                         WebTarget gatewayPath = ClientBuilder.newClient()
                                 .target("http://localhost:1337/node/leave/" + id);
