@@ -7,7 +7,7 @@ import gateway.ConcurrentStructures.CloneInterface;
 @XmlRootElement
 public class StatUnitBean implements CloneInterface<StatUnitBean> {
     private long timestamp;
-    private double value; // TODO: change with actual stat
+    private double value;
 
     public StatUnitBean() {
     }

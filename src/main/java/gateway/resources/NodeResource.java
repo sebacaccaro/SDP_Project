@@ -5,6 +5,7 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 
 import gateway.ConcurrentStructures.DuplicateKeyException;
@@ -56,7 +57,6 @@ public class NodeResource {
         return Response.ok().build();
     }
 
-    /* TODO: Eventually modify it in case in change to stats */
     @POST
     @Path("/send_stats")
     @Produces({ "application/json" })

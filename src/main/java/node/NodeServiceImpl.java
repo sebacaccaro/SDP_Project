@@ -23,14 +23,19 @@ public class NodeServiceImpl extends NodeServiceImplBase {
      */
     @Override
     public void joinAfter(NodeData joiningNode, StreamObserver<JoinResponse> responseStream) {
-        // TODO: also condition if node cannot join
-        JoinResponse response = JoinResponse.newBuilder().setJoinApproved(true)
-                .setNextNode(nodeRef.getNext().toNodeData()).build();
-        responseStream.onNext(response);
-        responseStream.onCompleted();
-        nodeRef.log("SetNext Called From server to " + new NodeBean(joiningNode));
-        if (joiningNode.getId() != nodeRef.toNodeBean().getId()) {
-            nodeRef.setNext(new NodeBean(joiningNode));
+        if (nodeRef.isExiting()) {
+            JoinResponse response = JoinResponse.newBuilder().setJoinApproved(false).build();
+            responseStream.onNext(response);
+            responseStream.onCompleted();
+        } else {
+            JoinResponse response = JoinResponse.newBuilder().setJoinApproved(true)
+                    .setNextNode(nodeRef.getNext().toNodeData()).build();
+            responseStream.onNext(response);
+            responseStream.onCompleted();
+            nodeRef.log("SetNext Called From server to " + new NodeBean(joiningNode));
+            if (joiningNode.getId() != nodeRef.toNodeBean().getId()) {
+                nodeRef.setNext(new NodeBean(joiningNode));
+            }
         }
     }
 
@@ -52,7 +57,6 @@ public class NodeServiceImpl extends NodeServiceImplBase {
 
             @Override
             public void onCompleted() {
-                nodeRef.log("Connection Terminated");
             }
 
         };

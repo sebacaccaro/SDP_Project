@@ -38,12 +38,12 @@ public class tester {
             s.addNode(n5);
             s.addNode(n6);
         } catch (DuplicateKeyException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         }
-        for(NodeBean n: s.getNodes().getNodes()){
-            System.out.println("ID: "+n.getId()+" IP: "+n.getIp()+"Port: "+n.getPort());
-        };
+        for (NodeBean n : s.getNodes().getNodes()) {
+            System.out.println("ID: " + n.getId() + " IP: " + n.getIp() + "Port: " + n.getPort());
+        }
+        ;
 
     }
 }

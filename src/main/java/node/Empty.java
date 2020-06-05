@@ -16,8 +16,8 @@ public class Empty {
         Node n3 = new Node(3333, 3);
         Node n4 = new Node(4444, 4);
 
-        // n1.init();
-
+        n1.init();
+        n2.init();
         /*
          * Thread.sleep(1000); n2.init(); Thread.sleep(1000); n3.init();
          * Thread.sleep(1000); n4.init();

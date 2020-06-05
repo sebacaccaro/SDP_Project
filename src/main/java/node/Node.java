@@ -38,20 +38,26 @@ public class Node {
     private final int port;
     private int id;
     private NodeBean next;
-    private String ip = "localhost"; /* TODO: CHANGE WHEN REST CALL IS MADE */
-    private boolean exiting = false; /* TODO: if node is exiting, don't accept requestes */
+    private String ip;
+    private boolean exiting = false;
     private List<NodeBean> nodeList;
     private Server nodeServer = null;
     private SlidingWindowBuffer buffer = new SlidingWindowBuffer();
     private PM10Simulator sensor;
-    private boolean hasSkipBadge = false;
+    private String serverUrl;
     StreamObserver<Token> nextNodeHandler;
     ManagedChannel nextNodeChannel = null;
 
-    public Node(int port, int id) {
+    public Node(int port, int id, String ip, String serverUrl, int serverPort) {
         this.port = port;
         this.id = id;
+        this.ip = ip;
+        this.serverUrl = "http://" + serverUrl + ":" + serverPort;
         this.next = this.toNodeBean();
+    }
+
+    public Node(int port, int id) {
+        this(port, id, "localhost", "localhost", 1337);
     }
 
     public NodeBean toNodeBean() {
@@ -68,6 +74,10 @@ public class Node {
 
     public NodeBean getNext() {
         return next;
+    }
+
+    public boolean isExiting() {
+        return exiting;
     }
 
     public void setNext(NodeBean newNext) {
@@ -117,8 +127,7 @@ public class Node {
             log("-------------------------------------------");
             try {
                 System.in.read();
-            } catch (IOException e) {
-                // TODO Auto-generated catch block
+            } catch (Exception e) {
                 e.printStackTrace();
             }
             log("Shutting down the Node, please wait a moment :)");
@@ -126,31 +135,48 @@ public class Node {
         }).start();
     }
 
+    public void getNodeList() {
+        WebTarget gatewayPath = ClientBuilder.newClient().target(serverUrl + "/node/join");
+        Invocation.Builder invocationBuilder = gatewayPath.request(MediaType.APPLICATION_JSON);
+        nodeList = invocationBuilder.post(Entity.json(this.toNodeBean()), NodeBeanList.class).getNodes();
+        List<NodeBean> tempList = new LinkedList<NodeBean>(nodeList);
+        tempList.removeIf((NodeBean n) -> n.getId() != id);
+        this.ip = tempList.get(0).getIp(); // CAN BE SET TO LOCALHOST FOR TESTING PURPOSES
+    }
+
     public void init() throws IOException, InterruptedException {
         startSensor();
         startServer();
         delay(2000);
-
-        WebTarget gatewayPath = ClientBuilder.newClient().target("http://localhost:1337/node/join");
-        Invocation.Builder invocationBuilder = gatewayPath.request(MediaType.APPLICATION_JSON);
-        nodeList = invocationBuilder.post(Entity.json(this.toNodeBean()), NodeBeanList.class).getNodes();
-
         // MockServer ms = new MockServer();
         // List<NodeBean> nodeList = ms.register(this.toNodeBean());
-        joinAfter(nodeList.get(0));
+        getNodeList();
+        boolean canJoin = joinAfter(nodeList.get(0));
+        int i = 1;
+        while (!canJoin) {
+            if (i < nodeList.size()) {
+                canJoin = joinAfter(nodeList.get(i));
+                i++;
+            } else {
+                unregisterFromGateway();
+                getNodeList();
+                i = 0;
+            }
+        }
         showConsole();
     }
 
-    public void joinAfter(NodeBean nodeToAsk) {
+    public boolean joinAfter(NodeBean nodeToAsk) {
         ManagedChannel channel = ManagedChannelBuilder.forTarget(nodeToAsk.fullAddresse()).usePlaintext(true).build();
         NodeServiceBlockingStub stub = NodeServiceGrpc.newBlockingStub(channel);
         JoinResponse response = stub.joinAfter(this.toNodeData());
         if (response.getJoinApproved()) {
             setNext(new NodeBean(response.getNextNode()));
         } else {
-            // TODO: decide what to do
+            return false;
         }
         channel.shutdown();
+        return true;
     }
 
     public synchronized void openChannelWithNode(NodeBean next) {
@@ -164,12 +190,10 @@ public class Node {
 
             @Override
             public void onNext(ExitingResponse value) {
-                // TODO Auto-generated method stub
             }
 
             @Override
             public void onError(Throwable t) {
-                // TODO Auto-generated method stub
             }
 
             @Override
@@ -182,6 +206,12 @@ public class Node {
 
     public void passNext(Token t) {
         nextNodeHandler.onNext(t);
+    }
+
+    public void unregisterFromGateway() {
+        WebTarget gatewayPath = ClientBuilder.newClient().target(serverUrl + "/node/leave/" + id);
+        Invocation.Builder invocationBuilder = gatewayPath.request(MediaType.APPLICATION_JSON);
+        invocationBuilder.delete();
     }
 
     private HashMap<Long, Token> tokenQueue = new HashMap<Long, Token>();
@@ -200,7 +230,6 @@ public class Node {
                 Collections.sort(keys);
                 tokenQueue.remove(keys.get(0));
             }
-            // log("GOT TOKEN $" + t.getType());
             delay(10);
             switch (t.getType()) {
                 case DATA:
@@ -217,11 +246,7 @@ public class Node {
                         nextNodeHandler.onCompleted();
                         nodeServer.shutdownNow();
                         sensor.stopMeGently();
-                        WebTarget gatewayPath = ClientBuilder.newClient()
-                                .target("http://localhost:1337/node/leave/" + id);
-                        Invocation.Builder invocationBuilder = gatewayPath.request(MediaType.APPLICATION_JSON);
-                        Response r = invocationBuilder.delete();
-                        log("" + r.getStatus());
+                        unregisterFromGateway();
                     } else if (emitterId == next.getId()) {
                         passNext(t);
                         setNext(new NodeBean(t.getNext()));
@@ -292,7 +317,7 @@ public class Node {
 
     public void sendStatToGateway(StatUnitBean sb) {
         new Thread(() -> {
-            WebTarget gatewayPath = ClientBuilder.newClient().target("http://localhost:1337/node/send_stats");
+            WebTarget gatewayPath = ClientBuilder.newClient().target(serverUrl + "/node/send_stats");
             Invocation.Builder invocationBuilder = gatewayPath.request(MediaType.APPLICATION_JSON);
             invocationBuilder.post(Entity.json(sb));
         }).start();
@@ -306,7 +331,6 @@ public class Node {
         try {
             Thread.sleep(delayMs);
         } catch (InterruptedException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         }
     }
