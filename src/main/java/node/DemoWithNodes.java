@@ -9,7 +9,7 @@ import node.JoinService.Token;
 import node.JoinService.Token.Builder;
 import node.JoinService.Token.TokenType;
 
-public class Empty {
+public class DemoWithNodes {
     public static void main(String[] args) throws IOException, InterruptedException {
         Node n1 = new Node(1111, 1);
         Node n2 = new Node(2222, 2);

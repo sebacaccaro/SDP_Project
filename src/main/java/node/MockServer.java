@@ -6,6 +6,9 @@ import java.util.List;
 
 import gateway.store.beans.NodeBean;
 
+/**
+ * Only used for testing nodes without starting the gateway
+ */
 public class MockServer {
     private static HashMap<Integer, NodeBean> nodes = new HashMap<Integer, NodeBean>();
 
