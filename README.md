@@ -15,8 +15,10 @@ mvn install
 You will then need to start up the gateway with the following command:
 
 ```bash
-placeholder command
+mvn exec:java -Dexec.mainClass="gateway.GatewayStarter" -Dexec.args="[gateway_port]"
 ```
+
+If no port is given, `1337` will be the default port.<br>
 
 Then, you can spawn nodes with the following command
 

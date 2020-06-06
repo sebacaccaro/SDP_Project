@@ -20,7 +20,14 @@ public class GatewayStarter {
     private static final int PORT = 1337;
 
     public static void main(String[] args) throws IOException {
-        URI baseUri = UriBuilder.fromUri("http://" + HOST + "/").port(PORT).build();
+        int port;
+        try {
+            port = Integer.parseInt(args[0]);
+        } catch (IndexOutOfBoundsException e) {
+            port = PORT;
+        }
+
+        URI baseUri = UriBuilder.fromUri("http://" + HOST + "/").port(port).build();
 
         Set<Class<?>> resources = new HashSet<Class<?>>();
         resources.add(NodeResource.class);
@@ -34,7 +41,7 @@ public class GatewayStarter {
         System.out.println("#######   SDP Project Gateway  #######");
         System.out.println("#### Sebastiano Caccaro AA.18/19 #####");
         System.out.println("######################################");
-        System.out.println("\n > Gateway started on: http://" + HOST + ":" + PORT + "\n");
+        System.out.println("\n > Gateway started on: http://" + HOST + ":" + port + "\n");
 
         System.out.println("------   Hit return to stop ----------\n");
         System.in.read();
