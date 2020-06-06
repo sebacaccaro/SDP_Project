@@ -17,7 +17,7 @@ public class DemoWithNodes {
         Node n4 = new Node(4444, 4);
 
         n1.init();
-        n2.init();
+        // n2.init();
         /*
          * Thread.sleep(1000); n2.init(); Thread.sleep(1000); n3.init();
          * Thread.sleep(1000); n4.init();
@@ -26,7 +26,7 @@ public class DemoWithNodes {
          * Token.newBuilder().setType(TokenType.DATA).build(); n1.passNext(t1);
          */
 
-        n4.init();
+        // n4.init();
 
     }
 }

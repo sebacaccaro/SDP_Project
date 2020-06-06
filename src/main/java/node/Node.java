@@ -218,7 +218,9 @@ public class Node {
 
     public void handleToken(Token t) {
         /*
-         * TODO: Commentare per fare lo sbrone
+         * The tokenqueue is needed to ensure the token are handled in a FIFO way, as
+         * the sychronized statement does not guarantee ordering. This way, there won't
+         * be overtaking between the tokens
          */
         synchronized (tokenQueue) {
             tokenQueue.put(new Date().getTime(), t);
@@ -247,6 +249,7 @@ public class Node {
                         nodeServer.shutdownNow();
                         sensor.stopMeGently();
                         unregisterFromGateway();
+                        System.exit(0);
                     } else if (emitterId == next.getId()) {
                         passNext(t);
                         setNext(new NodeBean(t.getNext()));
