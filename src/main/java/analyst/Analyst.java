@@ -14,11 +14,19 @@ import gateway.store.beans.NumberOfNodesBean;
 import gateway.store.beans.StatsUnitListBean;
 
 public class Analyst {
-    // TODO: dynamic server
-    private static WebTarget webTarget = ClientBuilder.newClient().target("http://localhost:1337/analyst");
+    private static WebTarget webTarget;
 
     public static void main(String[] args) throws IOException {
-        /* TODO: put parameters for port and ip */
+        int port;
+        String server;
+        try {
+            server = args[0];
+            port = Integer.parseInt(args[1]);
+            webTarget = ClientBuilder.newClient().target("http://" + server + ":" + port + "/analyst");
+        } catch (IndexOutOfBoundsException e) {
+            webTarget = ClientBuilder.newClient().target("http://localhost:1337/analyst");
+        }
+
         printHeader();
         boolean continuing = true;
         while (continuing) {
@@ -33,6 +41,7 @@ public class Analyst {
     }
 
     public static boolean printMenu() throws IOException {
+        System.out.println("----------------------------------------------------------");
         System.out.println("What statistics would you like to consult ?");
         System.out.println("\t1. Number of nodes in the token ring net");
         System.out.println("\t2. Last n measurments");
