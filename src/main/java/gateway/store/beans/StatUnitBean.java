@@ -35,7 +35,6 @@ public class StatUnitBean implements CloneInterface<StatUnitBean> {
         return cloned;
     }
 
-    /* TODO: fix with real time */
     public String toString() {
         return "Time: " + timestamp + " Stat: " + value;
     }

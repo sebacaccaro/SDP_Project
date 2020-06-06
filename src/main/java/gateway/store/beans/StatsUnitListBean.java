@@ -16,7 +16,6 @@ public class StatsUnitListBean {
     }
 
     public void setStats(List<StatUnitBean> stats) {
-        /* TODO: should use new to do the copy? */
         this.stats = stats;
     }
 

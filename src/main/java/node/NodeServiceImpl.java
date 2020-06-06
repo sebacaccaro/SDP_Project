@@ -41,7 +41,6 @@ public class NodeServiceImpl extends NodeServiceImplBase {
 
     @Override
     public StreamObserver<Token> passNext(StreamObserver<ExitingResponse> response) {
-        // TOOD: implement
         nodeRef.log("Started passnext server");
 
         StreamObserver<Token> tokenStream = new StreamObserver<Token>() {
