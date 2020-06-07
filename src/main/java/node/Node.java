@@ -186,8 +186,7 @@ public class Node {
                 i = 0;
             }
         }
-        /* TODO: uncommente */
-        // showConsole();
+        showConsole();
     }
 
     public boolean joinAfter(NodeBean nodeToAsk) {
