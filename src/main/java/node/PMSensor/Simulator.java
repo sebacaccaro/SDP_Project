@@ -52,7 +52,7 @@ public abstract class Simulator extends Thread {
     }
 
     private long deltaTime() {
-        return System.currentTimeMillis() - midnight;
+        return System.currentTimeMillis();
     }
 
     public String getIdentifier() {

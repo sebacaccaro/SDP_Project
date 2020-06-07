@@ -1,5 +1,7 @@
 package gateway.store.beans;
 
+import java.util.Date;
+
 import javax.xml.bind.annotation.XmlRootElement;
 
 import gateway.ConcurrentStructures.CloneInterface;
@@ -36,6 +38,6 @@ public class StatUnitBean implements CloneInterface<StatUnitBean> {
     }
 
     public String toString() {
-        return "Time: " + timestamp + " Stat: " + value;
+        return "Time: " + new Date(timestamp) + " Stat: " + value;
     }
 }
