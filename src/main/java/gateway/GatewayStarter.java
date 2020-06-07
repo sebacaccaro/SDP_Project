@@ -48,6 +48,7 @@ public class GatewayStarter {
         System.out.println("> Stopping server");
         server.stop(0);
         System.out.println("> Server stopped");
+        System.exit(0);
 
     }
 }

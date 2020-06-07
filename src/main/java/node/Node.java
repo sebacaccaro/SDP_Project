@@ -45,6 +45,7 @@ public class Node {
     private SlidingWindowBuffer buffer = new SlidingWindowBuffer();
     private PM10Simulator sensor;
     private String serverUrl;
+    Object startLock = new Object();
     StreamObserver<Token> nextNodeHandler;
     ManagedChannel nextNodeChannel = null;
 
@@ -97,6 +98,9 @@ public class Node {
             try {
                 nodeServer.start();
                 log("** Server started");
+                synchronized (startLock) {
+                    startLock.notify();
+                }
                 nodeServer.awaitTermination();
                 log("## Server terminated");
             } catch (Exception e) {
@@ -150,7 +154,11 @@ public class Node {
     public void init() throws IOException, InterruptedException {
         startSensor();
         startServer();
-        delay(2000);
+
+        synchronized (startLock) {
+            startLock.wait();
+        }
+
         // MockServer ms = new MockServer();
         // List<NodeBean> nodeList = ms.register(this.toNodeBean());
         getNodeList();
@@ -235,7 +243,7 @@ public class Node {
                 Collections.sort(keys);
                 tokenQueue.remove(keys.get(0));
             }
-            delay(10);
+            // delay(10);
             switch (t.getType()) {
                 case DATA:
                     if (!(exiting && id == next.getId())) {

@@ -17,7 +17,9 @@ public class DemoWithNodes {
         Node n4 = new Node(4444, 4);
 
         n1.init();
-        // n2.init();
+        n2.init();
+        n3.init();
+        n4.init();
         /*
          * Thread.sleep(1000); n2.init(); Thread.sleep(1000); n3.init();
          * Thread.sleep(1000); n4.init();
