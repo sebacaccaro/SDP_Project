@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 
+import javax.sql.rowset.spi.SyncResolver;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.Invocation;
@@ -80,8 +81,8 @@ public class Node {
         return next;
     }
 
-    public boolean isExiting() {
-        return exiting;
+    public synchronized boolean isExiting() {
+        return new Boolean(exiting);
     }
 
     public boolean isLettingNodeIn() {
@@ -391,7 +392,9 @@ public class Node {
         log("Emitting leave token");
         Token exitToken = Token.newBuilder().setType(TokenType.EXIT).setEmitterId(id).setNext(next.toNodeData())
                 .build();
-        exiting = true;
+        synchronized (this) {
+            exiting = true;
+        }
         passNext(exitToken);
     }
 
