@@ -12,7 +12,6 @@ import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.Invocation;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
 
 import gateway.store.beans.NodeBean;
 import gateway.store.beans.NodeBeanList;
@@ -40,12 +39,16 @@ public class Node {
     private NodeBean next;
     private String ip;
     private boolean exiting = false;
+    private boolean isLettingNodeIn = false;
+    private boolean hasEmittedToken = false;
     private List<NodeBean> nodeList;
     private Server nodeServer = null;
     private SlidingWindowBuffer buffer = new SlidingWindowBuffer();
     private PM10Simulator sensor;
     private String serverUrl;
     Object startLock = new Object();
+    Object leaveLock = new Object();
+    private boolean skippedLast = false;
     StreamObserver<Token> nextNodeHandler;
     ManagedChannel nextNodeChannel = null;
 
@@ -81,11 +84,20 @@ public class Node {
         return exiting;
     }
 
+    public boolean isLettingNodeIn() {
+        return isLettingNodeIn;
+    }
+
+    public void setIsLettingNodeIn(boolean b) {
+        isLettingNodeIn = b;
+    }
+
     public void setNext(NodeBean newNext) {
         next = newNext;
         Thread channelThread = new Thread(() -> {
             openChannelWithNode(next);
-            if (nodeList.size() == 1) {
+            if (nodeList.size() == 1 && hasEmittedToken == false && nodeList.get(0).getId() == id) {
+                hasEmittedToken = true;
                 passNext(Token.newBuilder().setType(TokenType.DATA).build());
             }
         });
@@ -143,6 +155,8 @@ public class Node {
         WebTarget gatewayPath = ClientBuilder.newClient().target(serverUrl + "/node/join");
         Invocation.Builder invocationBuilder = gatewayPath.request(MediaType.APPLICATION_JSON);
         nodeList = invocationBuilder.post(Entity.json(this.toNodeBean()), NodeBeanList.class).getNodes();
+        // MockServer ms = new MockServer();
+        // nodeList = ms.register(this.toNodeBean());
         if (nodeList.size() > 1) {
             // Shuffling the node list in order to minimize multiple nodes aking to join
             // a single node at the same time
@@ -159,8 +173,6 @@ public class Node {
             startLock.wait();
         }
 
-        // MockServer ms = new MockServer();
-        // List<NodeBean> nodeList = ms.register(this.toNodeBean());
         getNodeList();
         boolean canJoin = joinAfter(nodeList.get(0));
         int i = 1;
@@ -174,7 +186,8 @@ public class Node {
                 i = 0;
             }
         }
-        showConsole();
+        /* TODO: uncommente */
+        // showConsole();
     }
 
     public boolean joinAfter(NodeBean nodeToAsk) {
@@ -212,6 +225,7 @@ public class Node {
             }
         });
 
+        setIsLettingNodeIn(false);
         log("Opened channel with N" + next.getId());
     }
 
@@ -227,7 +241,7 @@ public class Node {
 
     private HashMap<Long, Token> tokenQueue = new HashMap<Long, Token>();
 
-    public void handleToken(Token t) {
+    public void handleToken(Token t) throws InterruptedException {
         /*
          * The tokenqueue is needed to ensure the token are handled in a FIFO way, as
          * the sychronized statement does not guarantee ordering. This way, there won't
@@ -241,11 +255,14 @@ public class Node {
             synchronized (tokenQueue) {
                 List<Long> keys = new LinkedList<Long>(tokenQueue.keySet());
                 Collections.sort(keys);
-                tokenQueue.remove(keys.get(0));
+                t = tokenQueue.remove(keys.get(keys.size() - 1));
+                if (tokenQueue.size() == 0) {
+                    tokenQueue.notify();
+                }
             }
-            // delay(10);
             switch (t.getType()) {
                 case DATA:
+                    log("Received data token");
                     if (!(exiting && id == next.getId())) {
                         t = handleAndGenerateDataToken(t);
                         passNext(t);
@@ -253,18 +270,39 @@ public class Node {
                     break;
 
                 case EXIT:
+                    log("Received exit token by N" + t.getEmitterId());
                     int emitterId = t.getEmitterId();
                     if (emitterId == id) {
+                        synchronized (leaveLock) {
+                            if (skippedLast == true) {
+                                log("Waiting for skipped");
+                                leaveLock.wait();
+                            }
+                        }
+                        synchronized (tokenQueue) {
+                            if (tokenQueue.size() > 0) {
+                                log("Waiting for queue > " + tokenQueue.size());
+                                tokenQueue.wait();
+                            }
+
+                        }
                         log("Getting out for good");
                         nextNodeHandler.onCompleted();
                         nextNodeChannel.shutdown();
                         nodeServer.shutdown();
                         sensor.stopMeGently();
                         unregisterFromGateway();
-                        System.exit(0);
+                        /* TODO: Uncomment */
+                        // System.exit(0);
                     } else if (emitterId == next.getId()) {
                         passNext(t);
                         setNext(new NodeBean(t.getNext()));
+                        /* TODO: check'n'reverse */
+                    } else if (exiting && t.getNext().getId() == id) {
+                        log("" + t);
+                        t = t.toBuilder().setNext(next.toNodeData()).build();
+                        passNext(t);
+                        log("@@@@@" + t);
                     } else {
                         passNext(t);
                     }
@@ -275,34 +313,60 @@ public class Node {
         }
     }
 
+    //
+    // The data token has 3 fields:
+    // - Data: each node put here its local stat when compiled
+    // - Skips: if a node hasn't computed its local stat yet, he must put its id
+    // in this field. Note the node cannot leave the net if its id is in the
+    // skips field
+    // - Writes: when I write a stat, I also write my id in this list. Whenever
+    // I receive a token with an empty skip list and my id in writes,
+    // I contact the gateway
+    //
     public Token handleAndGenerateDataToken(Token received) {
         List<Integer> written = new LinkedList<Integer>(received.getWritesList());
         List<Integer> skipped = new LinkedList<Integer>(received.getSkipsList());
 
         if (exiting && !skipped.contains(id)) {
-            return received;
+            synchronized (leaveLock) {
+                leaveLock.notify();
+                skippedLast = false;
+                return received;
+            }
         }
 
         if (written.contains(id)) {
-            if (skipped.size() == 0) {
-                // Token is full: I send it and emit a new one
-                sendStatToGateway(mean(received.getStatList()));
-                return Token.newBuilder().setType(TokenType.DATA).build();
-            } else {
-                // I don't have to do anything, I just pass on the token
-                return received;
+            synchronized (leaveLock) {
+                skippedLast = false;
+                leaveLock.notify();
+                if (skipped.size() == 0) {
+                    // Token is full: I send it and emit a new one
+                    sendStatToGateway(mean(received.getStatList()));
+                    return Token.newBuilder().setType(TokenType.DATA).build();
+                } else {
+                    // I don't have to do anything, I just pass on the token
+                    return received;
+                }
             }
         } else {
             if (buffer.isValueProduced()) {
-                // Metto valore dentro e rimuovo il mio eventuale skip
-                skipped.remove(new Integer(id));
-                return received.toBuilder().addStat(buffer.getLastStat()).clearSkips().addAllSkips(skipped)
-                        .addWrites(id).build();
+                // I write down mu value, and remove my skip if its present
+                synchronized (leaveLock) {
+                    skippedLast = false;
+                    leaveLock.notify();
+                    skipped.remove(new Integer(id));
+                    return received.toBuilder().addStat(buffer.getLastStat()).clearSkips().addAllSkips(skipped)
+                            .addWrites(id).build();
+                }
+
             } else {
                 int skipIndex = skipped.indexOf(id);
                 Builder b = received.toBuilder();
                 if (skipIndex == -1) {
-                    b.addSkips(id);
+                    synchronized (leaveLock) {
+                        b.addSkips(id);
+                        skippedLast = true;
+                    }
                 }
                 return b.build();
             }
@@ -324,8 +388,8 @@ public class Node {
 
     public void exitRing() {
         log("Emitting leave token");
-        Token exitToken = Token.newBuilder().setType(TokenType.EXIT).setEmitterId(id).setNext(next.toNodeData())
-                .build();
+        Token exitToken = Token.newBuilder().setType(TokenType.EXIT).setEmitterId(id).setLastId(id)
+                .setNext(next.toNodeData()).build();
         exiting = true;
         passNext(exitToken);
     }

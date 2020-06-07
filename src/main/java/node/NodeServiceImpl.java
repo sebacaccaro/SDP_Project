@@ -1,7 +1,6 @@
 package node;
 
 import gateway.store.beans.NodeBean;
-import io.grpc.internal.Stream;
 import io.grpc.stub.StreamObserver;
 import node.JoinService.ExitingResponse;
 import node.JoinService.JoinResponse;
@@ -23,16 +22,16 @@ public class NodeServiceImpl extends NodeServiceImplBase {
      */
     @Override
     public void joinAfter(NodeData joiningNode, StreamObserver<JoinResponse> responseStream) {
-        if (nodeRef.isExiting()) {
+        if (nodeRef.isExiting() || nodeRef.isLettingNodeIn()) {
             JoinResponse response = JoinResponse.newBuilder().setJoinApproved(false).build();
             responseStream.onNext(response);
             responseStream.onCompleted();
         } else {
+            nodeRef.setIsLettingNodeIn(true);
             JoinResponse response = JoinResponse.newBuilder().setJoinApproved(true)
                     .setNextNode(nodeRef.getNext().toNodeData()).build();
             responseStream.onNext(response);
             responseStream.onCompleted();
-            nodeRef.log("SetNext Called From server to " + new NodeBean(joiningNode));
             if (joiningNode.getId() != nodeRef.toNodeBean().getId()) {
                 nodeRef.setNext(new NodeBean(joiningNode));
             }
@@ -41,13 +40,16 @@ public class NodeServiceImpl extends NodeServiceImplBase {
 
     @Override
     public StreamObserver<Token> passNext(StreamObserver<ExitingResponse> response) {
-        nodeRef.log("Started passnext server");
 
         StreamObserver<Token> tokenStream = new StreamObserver<Token>() {
 
             @Override
             public void onNext(Token value) {
-                nodeRef.handleToken(value);
+                try {
+                    nodeRef.handleToken(value);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
             }
 
             @Override
