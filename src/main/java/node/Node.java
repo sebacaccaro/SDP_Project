@@ -249,7 +249,8 @@ public class Node {
                     if (emitterId == id) {
                         log("Getting out for good");
                         nextNodeHandler.onCompleted();
-                        nodeServer.shutdownNow();
+                        nextNodeChannel.shutdown();
+                        nodeServer.shutdown();
                         sensor.stopMeGently();
                         unregisterFromGateway();
                         System.exit(0);
