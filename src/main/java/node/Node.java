@@ -287,22 +287,17 @@ public class Node {
 
                         }
                         log("Getting out for good");
-                        nextNodeHandler.onCompleted();
                         nextNodeChannel.shutdown();
                         nodeServer.shutdown();
                         sensor.stopMeGently();
                         unregisterFromGateway();
-                        /* TODO: Uncomment */
-                        // System.exit(0);
+                        System.exit(0);
                     } else if (emitterId == next.getId()) {
                         passNext(t);
                         setNext(new NodeBean(t.getNext()));
-                        /* TODO: check'n'reverse */
                     } else if (exiting && t.getNext().getId() == id) {
-                        log("" + t);
                         t = t.toBuilder().setNext(next.toNodeData()).build();
                         passNext(t);
-                        log("@@@@@" + t);
                     } else {
                         passNext(t);
                     }
@@ -367,6 +362,13 @@ public class Node {
                         b.addSkips(id);
                         skippedLast = true;
                     }
+                } else if (exiting) {
+                    synchronized (leaveLock) {
+                        skippedLast = false;
+                        leaveLock.notify();
+                        skipped.remove(new Integer(id));
+                        return received.toBuilder().clearSkips().addAllSkips(skipped).addWrites(id).build();
+                    }
                 }
                 return b.build();
             }
@@ -388,8 +390,8 @@ public class Node {
 
     public void exitRing() {
         log("Emitting leave token");
-        Token exitToken = Token.newBuilder().setType(TokenType.EXIT).setEmitterId(id).setLastId(id)
-                .setNext(next.toNodeData()).build();
+        Token exitToken = Token.newBuilder().setType(TokenType.EXIT).setEmitterId(id).setNext(next.toNodeData())
+                .build();
         exiting = true;
         passNext(exitToken);
     }

@@ -13,12 +13,11 @@ message Token {
     TokenType type = 1;
     
     int32 emitterId = 2; //JUST FOR EXIT
-    int32 lastId = 3;
-    NodeData next   = 4; //JUST FOR EXIT
+    NodeData next   = 3; //JUST FOR EXIT
 
-    repeated Stat stat = 5; //JUST FOR DATA
-    repeated int32 writes = 6; //JUST FOR DATA
-    repeated int32 skips = 7; //JUST FOR DATA
+    repeated Stat stat = 4; //JUST FOR DATA
+    repeated int32 writes = 5; //JUST FOR DATA
+    repeated int32 skips = 6; //JUST FOR DATA
 }
 
 message JoinResponse {

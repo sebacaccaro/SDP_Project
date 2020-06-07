@@ -25,7 +25,9 @@ public class DemoWithNodes {
         // Token t1 = Token.newBuilder().setType(TokenType.DATA).build();
         // n1.passNext(t1);
         n2.exitRing();
+        // n3.exitRing();
         n1.exitRing();
+        // n4.exitRing();
         /*
          * Thread.sleep(1000); n2.init(); Thread.sleep(1000); n3.init();
          * Thread.sleep(1000); n4.init();
