@@ -139,9 +139,12 @@ public class Node {
         WebTarget gatewayPath = ClientBuilder.newClient().target(serverUrl + "/node/join");
         Invocation.Builder invocationBuilder = gatewayPath.request(MediaType.APPLICATION_JSON);
         nodeList = invocationBuilder.post(Entity.json(this.toNodeBean()), NodeBeanList.class).getNodes();
-        List<NodeBean> tempList = new LinkedList<NodeBean>(nodeList);
-        tempList.removeIf((NodeBean n) -> n.getId() != id);
-        this.ip = tempList.get(0).getIp(); // CAN BE SET TO LOCALHOST FOR TESTING PURPOSES
+        if (nodeList.size() > 1) {
+            // Shuffling the node list in order to minimize multiple nodes aking to join
+            // a single node at the same time
+            nodeList.removeIf((NodeBean n) -> n.getId() == id);
+            Collections.shuffle(nodeList);
+        }
     }
 
     public void init() throws IOException, InterruptedException {
