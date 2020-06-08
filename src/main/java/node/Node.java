@@ -260,11 +260,17 @@ public class Node {
                     tokenQueue.notify();
                 }
             }
+            // When executing multiple nodes on a single cpu, it's better to a set some
+            // artificial
+            // delay to avoid frying the cpu
+            delay(30);
             switch (t.getType()) {
                 case DATA:
                     log("Received data token");
                     if (!(exiting && id == next.getId())) {
                         t = handleAndGenerateDataToken(t);
+                        passNext(t);
+                    } else if (exiting) {
                         passNext(t);
                     }
                     break;
@@ -273,18 +279,18 @@ public class Node {
                     log("Received exit token by N" + t.getEmitterId());
                     int emitterId = t.getEmitterId();
                     if (emitterId == id) {
-                        synchronized (leaveLock) {
-                            if (skippedLast == true) {
-                                log("Waiting for skipped");
-                                leaveLock.wait();
+                        if (id != t.getNext().getId()) {
+                            synchronized (leaveLock) {
+                                if (skippedLast == true) {
+                                    leaveLock.wait();
+                                }
                             }
-                        }
-                        synchronized (tokenQueue) {
-                            if (tokenQueue.size() > 0) {
-                                log("Waiting for queue > " + tokenQueue.size());
-                                tokenQueue.wait();
-                            }
+                            synchronized (tokenQueue) {
+                                if (tokenQueue.size() > 0) {
+                                    tokenQueue.wait();
+                                }
 
+                            }
                         }
                         log("Getting out for good");
                         nextNodeChannel.shutdown();
@@ -318,7 +324,7 @@ public class Node {
     // I receive a token with an empty skip list and my id in writes,
     // I contact the gateway
     //
-    public Token handleAndGenerateDataToken(Token received) {
+    public synchronized Token handleAndGenerateDataToken(Token received) {
         List<Integer> written = new LinkedList<Integer>(received.getWritesList());
         List<Integer> skipped = new LinkedList<Integer>(received.getSkipsList());
 
