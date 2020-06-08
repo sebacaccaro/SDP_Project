@@ -9,7 +9,7 @@ Sebastiano Caccaro
 To execute the project you must compile it first by executing the following command in the pom directory
 
 ```bash
-mvn install
+mvn clean package
 ```
 
 ### Gateway

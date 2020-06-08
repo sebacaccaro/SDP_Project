@@ -20,11 +20,14 @@ public class GatewayStarter {
     private static final int PORT = 1337;
 
     public static void main(String[] args) throws IOException {
-        int port;
+        int port = 0;
         try {
             port = Integer.parseInt(args[0]);
         } catch (IndexOutOfBoundsException e) {
             port = PORT;
+        } catch (NumberFormatException e) {
+            System.out.println("Invalid port number/format");
+            System.exit(1);
         }
 
         URI baseUri = UriBuilder.fromUri("http://" + HOST + "/").port(port).build();

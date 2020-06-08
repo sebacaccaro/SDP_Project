@@ -25,6 +25,9 @@ public class Analyst {
             webTarget = ClientBuilder.newClient().target("http://" + server + ":" + port + "/analyst");
         } catch (IndexOutOfBoundsException e) {
             webTarget = ClientBuilder.newClient().target("http://localhost:1337/analyst");
+        } catch (NumberFormatException e) {
+            System.out.println("Invalid port number/format");
+            System.exit(1);
         }
 
         printHeader();
