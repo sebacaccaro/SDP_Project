@@ -1,6 +1,7 @@
 package node;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -20,7 +21,7 @@ public class DemoWithNodes {
          * 
          * Thread.sleep(15000); n2.exitRing(); n1.exitRing();
          */
-
+        int num = 1;
         List<Node> ln = new LinkedList<Node>();
         for (int i = 2001; i < 2001 + 40; i++)
             ln.add(new Node(i, i - 2000));
@@ -28,6 +29,9 @@ public class DemoWithNodes {
         for (Node n : ln) {
             n.init();
         }
+
+        Thread.sleep(10000);
+        ln.get(5).exitRing();
 
     }
 }

@@ -27,10 +27,10 @@ If no port is given, `1337` will be the default port.<br>
 Then, you can spawn nodes with the following command
 
 ```bash
-mvn exec:java -Dexec.mainClass="node.NodeStarter" -Dexec.args="[node_port][node_id][node_ip][gateway_port][gateway_url]"
+mvn exec:java -Dexec.mainClass="node.NodeStarter" -Dexec.args="[node_port][node_id][gateway_port][gateway_url]"
 ```
 
-If no node_ip, gateway_port and gateway_url are provided, the default value are `localhost` and `localhost:1337`. Note that the gateway url must be provided without in a barebone fashion, for instance `localhost` and `127.0.0.1` are ok, while `http://xx.xxx.xxx.....` and `localhost/foo/` are forbidden (the latter becaouse of the backslash at the end).
+If no gateway_port and gateway_url are provided, the default value is `localhost:1337`. Note that the gateway url must be provided without in a barebone fashion, for instance `localhost` and `127.0.0.1` are ok, while `http://xx.xxx.xxx.....` and `localhost/foo/` are forbidden (the latter becaouse of the backslash at the end).
 
 ### Analyst
 

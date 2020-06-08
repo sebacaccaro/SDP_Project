@@ -7,9 +7,9 @@ import java.util.Set;
 
 import javax.ws.rs.core.UriBuilder;
 
-import com.sun.net.httpserver.HttpServer;
+import org.glassfish.grizzly.http.server.HttpServer;
 
-import org.glassfish.jersey.jdkhttp.JdkHttpServerFactory;
+import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpServerFactory;
 import org.glassfish.jersey.server.ResourceConfig;
 
 import gateway.resources.*;
@@ -35,7 +35,7 @@ public class GatewayStarter {
 
         ResourceConfig config = new ResourceConfig(resources);
 
-        HttpServer server = JdkHttpServerFactory.createHttpServer(baseUri, config);
+        HttpServer server = GrizzlyHttpServerFactory.createHttpServer(baseUri, config);
 
         System.out.println("######################################");
         System.out.println("#######   SDP Project Gateway  #######");
@@ -46,7 +46,7 @@ public class GatewayStarter {
         System.out.println("------   Hit return to stop ----------\n");
         System.in.read();
         System.out.println("> Stopping server");
-        server.stop(0);
+        server.shutdown();
         System.out.println("> Server stopped");
         System.exit(0);
 

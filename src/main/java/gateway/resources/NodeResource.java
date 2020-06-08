@@ -1,11 +1,11 @@
 package gateway.resources;
 
+import javax.inject.Inject;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
-import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 
 import gateway.ConcurrentStructures.DuplicateKeyException;
@@ -18,6 +18,8 @@ import gateway.store.beans.StatUnitBean;
  */
 @Path("node")
 public class NodeResource {
+    @Inject
+    private javax.inject.Provider<org.glassfish.grizzly.http.server.Request> request;
 
     /**
      * Method handling HTTP GET requests. The returned object will be sent to the
@@ -30,6 +32,7 @@ public class NodeResource {
     @Path("/join")
     @Produces({ "application/json" })
     public Response join(NodeBean joiningNode) {
+        joiningNode.setIp(request.get().getRemoteAddr().trim());
         Store s = new Store();
         try {
             s.addNode(joiningNode);

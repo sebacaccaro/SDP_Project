@@ -161,6 +161,11 @@ public class Node {
         if (nodeList.size() > 1) {
             // Shuffling the node list in order to minimize multiple nodes aking to join
             // a single node at the same time
+            for (NodeBean n : nodeList) {
+                if (n.getId() == id) {
+                    this.ip = n.getIp();
+                }
+            }
             nodeList.removeIf((NodeBean n) -> n.getId() == id);
             Collections.shuffle(nodeList);
         }
